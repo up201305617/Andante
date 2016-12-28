@@ -1,0 +1,23 @@
+class Zona
+
+types
+
+	public String = seq1 of char;
+	
+instance variables
+
+	public nome : String;
+	public preco : real;
+	
+operations
+
+	public Zona: String * real ==> Zona
+	Zona(n,p) == (
+		nome := n;
+		preco := p;
+		return self;
+	)
+	post preco > 0; 
+	
+
+end Zona

@@ -1,0 +1,34 @@
+class MaquinaAndante
+
+instance variables
+
+	public quantidadeCartoes: nat := 5;
+	
+operations
+
+	public MaquinaAndante: () ==> MaquinaAndante
+		MaquinaAndante() == 
+	return self;
+	
+	public comprarAndante: nat1 * Zona ==> CartaoAndante
+		comprarAndante(q,z) == (
+			dcl andante : CartaoAndante := new CartaoAndante(q,z);
+			quantidadeCartoes := quantidadeCartoes - 1;
+			return andante
+		)
+		post quantidadeCartoes = quantidadeCartoes~ - 1;
+	
+	public carregarAndante: nat * CartaoAndante ==> ()
+		carregarAndante(q,c) == ( 
+			c.carregarAndante(q);
+		)
+		post quantidadeCartoes = quantidadeCartoes~;
+	
+	public mudarZona: Zona * CartaoAndante ==> CartaoAndante
+		mudarZona(z,c) == (
+			c.mudarZona(z);
+			return c
+		)
+		post quantidadeCartoes = quantidadeCartoes~;
+		
+end MaquinaAndante
