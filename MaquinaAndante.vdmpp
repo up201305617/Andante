@@ -4,11 +4,11 @@ types
 	public SacoDinheiro = Dinheiro`BagOfCoins;
 	public Status = <OnFactory> | <OnMaintenance> | <Idle> | <EnteringCoins> | <Delivering>;
 	public Password = seq of char;
-	
 
 instance variables
 
 	public quantidadeCartoes: nat := 5;
+	public quantidadeRecibo: nat := 5;
 	public stockDinheiro: SacoDinheiro := {
 		1 |-> 5, 
 		2 |-> 5,
@@ -22,7 +22,7 @@ instance variables
 	public quantiaInserida: nat := 0;
 	public troco : SacoDinheiro := {|->}; 
 	public status : Status := <EnteringCoins>; 
-	public andante : CartaoAndante;
+	public andante : [CartaoAndante] := nil;
 	
 	public z2: Zona := new Zona("z2",120);
 	public z3: Zona := new Zona("z3",155);
@@ -64,11 +64,23 @@ operations
 		let r = troco in (
 			atomic( 
 				troco := {|->};
-				--status := if andante = nil then <Idle> else <Delivering>
+				status := if andante = nil then <Idle> else <Delivering>
 			);
 			return r
 		)
 	pre troco <> {|->};
+	
+	public apanharAndante: () ==> CartaoAndante 
+	apanharAndante() == (
+		let r = andante in (
+			atomic( 
+				andante := nil;
+				status := if andante = nil then <Idle> else <Delivering>
+			);
+			return r
+		)
+	)
+	pre andante <> nil;
 	
 	public cancelar: () ==> ()
   cancelar() ==
@@ -81,8 +93,8 @@ operations
 			)
 	pre status = <EnteringCoins>;  
 	
-	public comprarAndante: nat1 * Zona ==> ()
-	comprarAndante(q, z) == 
+	public comprarAndante: nat1 * Zona * bool ==> ()
+	comprarAndante(q, z, r) == 
 		let cartao = new CartaoAndante(q,z),
 		preco = cartao.calcularPreco() + 60,
 		chg = Dinheiro`extract(stockDinheiro, quantiaInserida - preco) in (
@@ -93,15 +105,17 @@ operations
 						troco := chg; 
 						andante := cartao;
 						status := <Delivering>
-				)
+				);
+				
+				if r then quantidadeRecibo := quantidadeRecibo - 1;
 	)
 	pre status = <EnteringCoins>  
 	    and quantidadeCartoes > 0
 			and quantiaInserida >= z.preco * q
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - z.preco * q);
 	    
-	public carregarAndante: nat * CartaoAndante ==> ()
-	carregarAndante(q, c) ==(
+	public carregarAndante: nat * CartaoAndante * bool ==> ()
+	carregarAndante(q, c, r) ==(
 		c.carregarAndante(q);
 		let preco = c.zona.preco * q,
 		chg = Dinheiro`extract(stockDinheiro, quantiaInserida - preco) in (
@@ -111,7 +125,10 @@ operations
 						troco := chg; 
 						andante := c;
 						status := <Delivering>
-				)
+				);
+				
+				if r then quantidadeRecibo := quantidadeRecibo - 1;
+				
 	))
 	pre status = <EnteringCoins>  
 			and quantiaInserida >= c.zona.preco * q
