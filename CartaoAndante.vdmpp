@@ -8,6 +8,7 @@ instance variables
 	
 	public zona: Zona;
 	public quantidade: nat;
+	public preco: nat;
 	
 operations
 	
@@ -24,9 +25,15 @@ operations
 		quantidade := quantidade + q
 	post quantidade = q + quantidade~;
 	
+	public calcularPreco: () ==> nat
+	calcularPreco() ==(
+		preco := zona.preco * quantidade;
+		return preco);
+	
 	public mudarZona: Zona ==> ()
 	mudarZona(z) == (
 		quantidade := 0;
+		preco := 0;
 		zona := z
 	)
 	post zona <> zona~

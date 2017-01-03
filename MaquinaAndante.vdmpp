@@ -1,36 +1,125 @@
 class MaquinaAndante
+types
+
+	public SacoDinheiro = Dinheiro`BagOfCoins;
+	public Status = <OnFactory> | <OnMaintenance> | <Idle> | <EnteringCoins> | <Delivering>;
+	public Password = seq of char;
+	
 
 instance variables
 
 	public quantidadeCartoes: nat := 5;
+	public stockDinheiro: SacoDinheiro := {
+		1 |-> 5, 
+		2 |-> 5,
+		5 |-> 5, 
+		10 |-> 5, 
+		20 |-> 5, 
+		50 |-> 5,
+		100 |-> 5,
+		200 |-> 5
+	};
+	public quantiaInserida: nat := 0;
+	public troco : SacoDinheiro := {|->}; 
+	public status : Status := <EnteringCoins>; 
+	public andante : CartaoAndante;
+	
+	public z2: Zona := new Zona("z2",120);
+	public z3: Zona := new Zona("z3",155);
+	public z4: Zona := new Zona("z4",195);
+	public z5: Zona := new Zona("z5",235);
+	public z6: Zona := new Zona("z6",275);
+	public z7: Zona := new Zona("z7",315);
+	public z8: Zona := new Zona("z8",355);
+	public z9: Zona := new Zona("z9",395);
+	public z10: Zona := new Zona("z10",435);
+	public z11: Zona := new Zona("z11",475);
+	public z12: Zona := new Zona("z12",515);
 	
 operations
 
 	public MaquinaAndante: () ==> MaquinaAndante
 		MaquinaAndante() == 
 			return self;
-	
-	public comprarAndante: nat1 * Zona ==> CartaoAndante
-		comprarAndante(q,z) == (
-			dcl andante : CartaoAndante := new CartaoAndante(q,z);
-			quantidadeCartoes := quantidadeCartoes - 1;
-			return andante
-		)
-		post quantidadeCartoes = quantidadeCartoes~ - 1;
-	
-	public carregarAndante: nat * CartaoAndante ==> ()
-		carregarAndante(q,c) == ( 
-			c.carregarAndante(q);
-		)
-		post quantidadeCartoes = quantidadeCartoes~;
-	
-	public mudarZona: Zona * CartaoAndante ==> CartaoAndante
+
+	public mudarZona: Zona * CartaoAndante ==> ()
 		mudarZona(z,c) == (
 			c.mudarZona(z);
-			return c
 		)
 		post quantidadeCartoes = quantidadeCartoes~;
 		
-		
+	-----------------------------------------------------------------------
+	
+	public inserirDinheiro: Dinheiro`Coin ==> () 
+	inserirDinheiro(coin) == 
+		atomic (
+			stockDinheiro := Dinheiro`add(coin, stockDinheiro);
+			quantiaInserida :=  quantiaInserida + coin;
+			status := <EnteringCoins>
+		)
+	pre status in set {<Idle>, <EnteringCoins>}; 
+	
+	public apanharTroco: () ==> SacoDinheiro 
+	apanharTroco() ==
+		let r = troco in (
+			atomic( 
+				troco := {|->};
+				--status := if andante = nil then <Idle> else <Delivering>
+			);
+			return r
+		)
+	pre troco <> {|->};
+	
+	public cancelar: () ==> ()
+  cancelar() ==
+		let chg = Dinheiro`extract(stockDinheiro, quantiaInserida) in 
+			atomic (
+				stockDinheiro := Dinheiro`removeAll(chg, stockDinheiro);
+				quantiaInserida := 0;
+				troco := chg;
+				status := <Delivering>
+			)
+	pre status = <EnteringCoins>;  
+	
+	public comprarAndante: nat1 * Zona ==> ()
+	comprarAndante(q, z) == 
+		let cartao = new CartaoAndante(q,z),
+		preco = cartao.calcularPreco() + 60,
+		chg = Dinheiro`extract(stockDinheiro, quantiaInserida - preco) in (
+		  		atomic (
+						stockDinheiro := Dinheiro`removeAll(chg, stockDinheiro);
+						quantidadeCartoes := quantidadeCartoes - 1;
+						quantiaInserida := 0;
+						troco := chg; 
+						andante := cartao;
+						status := <Delivering>
+				)
+	)
+	pre status = <EnteringCoins>  
+	    and quantidadeCartoes > 0
+			and quantiaInserida >= z.preco * q
+	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - z.preco * q);
+	    
+	public carregarAndante: nat * CartaoAndante ==> ()
+	carregarAndante(q, c) ==(
+		c.carregarAndante(q);
+		let preco = c.zona.preco * q,
+		chg = Dinheiro`extract(stockDinheiro, quantiaInserida - preco) in (
+		  		atomic (
+						stockDinheiro := Dinheiro`removeAll(chg, stockDinheiro);
+						quantiaInserida := 0;
+						troco := chg; 
+						andante := c;
+						status := <Delivering>
+				)
+	))
+	pre status = <EnteringCoins>  
+			and quantiaInserida >= c.zona.preco * q
+	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - c.zona.preco * q);
+	    
+	public reset: () ==> ()
+	reset() ==
+		status := <Idle>
+	
 		
 end MaquinaAndante

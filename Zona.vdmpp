@@ -7,11 +7,11 @@ types
 instance variables
 
 	public nome : String;
-	public preco : real;
+	public preco : nat1;
 	
 operations
 
-	public Zona: String * real ==> Zona
+	public Zona: String * nat1 ==> Zona
 	Zona(n,p) == (
 		nome := n;
 		preco := p;

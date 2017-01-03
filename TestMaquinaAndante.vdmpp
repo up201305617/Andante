@@ -2,7 +2,7 @@ class TestMaquinaAndante is subclass of MyTestCase
 
 instance variables
 	
-	z2: Zona := new Zona("z2",1.20);
+	--z2: Zona := new Zona("z2",1.20);
 	z3: Zona := new Zona("z3",1.55);
 	z4: Zona := new Zona("z4",1.95);
 	z5: Zona := new Zona("z5",2.35);

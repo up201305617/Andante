@@ -1,0 +1,77 @@
+class Dinheiro
+
+values
+	-- possible coin values, in cents of euros
+  public CoinValues : set of nat1 = {1, 2, 5, 10, 20, 50, 100, 200};
+  
+types
+	public Coin = nat1
+		inv c == c in set CoinValues;	
+		
+	public BagOfCoins = map Coin to nat1; -- maps coin values to quantities
+
+functions
+	-- Computes the total amount in a bag of coins
+	public sum: BagOfCoins -> nat
+	sum(b) == 
+		if b = {|->} then 0
+		else let c in set dom b in b(c) * c + sum({c} <-: b);
+
+	-- Adds a coin to a bag of coins and returns the new bag
+	public add: Coin * BagOfCoins -> BagOfCoins 
+	add(coin, bag) ==
+		if coin in set dom bag then bag ++ { coin |-> bag(coin) + 1} 
+		else bag munion {coin |-> 1};
+
+	-- Removes a coin from a bag of coins and returns the new bag
+	public remove: Coin * BagOfCoins -> BagOfCoins 
+	remove(coin, bag) ==
+		if bag(coin) = 1 then {coin} <-: bag else bag ++ {coin |-> bag(coin) - 1} 
+	pre coin in set dom bag;
+
+	-- Adds two bags of coins and returns the new bag
+	public addAll: BagOfCoins * BagOfCoins -> BagOfCoins 
+	addAll(bag1, bag2) ==
+		{ c |-> (if c in set dom bag1 then bag1(c) else 0)
+		        + (if c in set dom bag2 then bag2(c) else 0) |
+		        c in set dom bag1 union dom bag2};
+
+	-- Subtracts the first bag of coins from the second one, and returns the result
+	public removeAll: BagOfCoins * BagOfCoins -> BagOfCoins 
+	removeAll(bag1, bag2) ==
+		{c |-> bag2(c) - (if c in set dom bag1 then bag1(c) else 0) |
+		      c in set dom bag2 & not (c in set dom bag1 and bag1(c) = bag2(c))}
+	pre isSubBag(bag1, bag2);
+
+	-- Checks if the first bag of coins is a subbag of the second one
+	public isSubBag: BagOfCoins * BagOfCoins -> bool 
+	isSubBag(b1, b2) ==
+		dom b1 subset dom b2 
+		and forall c in set dom b1 & b1(c) <= b2(c); 
+	          
+	-- Extracts (computes) a subbag that makes up a given amount.
+	-- Version 2, less abstract, following a greedy algorithm with backtracing.
+	-- Returns nil if there is no solution.
+	public extract: BagOfCoins * nat -> [BagOfCoins] 
+	extract(bag, amount) ==
+		extractAux(bag, amount, amount);
+
+	-- Auxiliary function that does the work of 'extract'.
+	-- The third argument is the maximum value of coins to use.
+	private extractAux: BagOfCoins * nat * nat -> [BagOfCoins] 
+	extractAux(bag, amount, maxCoin) ==
+		if amount = 0 then {|->}    
+    	else let coins = reverse [c | c in set dom bag & c <= maxCoin and c <= amount] in
+    		   	if coins = [] then nil
+    			 	else let c = hd coins,
+								   remaining = extractAux(remove(c, bag), amount - c, c) 
+							in	if remaining <> nil then add(c, remaining)
+	    	            	else extractAux(bag, amount, c - 1);
+
+	-- Checks if is is possible to make a given amount from a bag.
+  -- Version 2, less abstract.
+  public canExtract: BagOfCoins * nat -> bool
+  canExtract(bag, amount) ==
+		extract(bag, amount) <> nil;
+
+end Dinheiro
