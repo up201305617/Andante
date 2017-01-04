@@ -1,0 +1,23 @@
+class Recibo
+types
+
+	public String = seq1 of char;
+	
+instance variables
+
+	public zona: Zona;
+	public quantidade: nat1;
+	public operacao: String;
+	 
+operations
+
+	public Recibo: nat * Zona * String ==> Recibo
+	Recibo(q,z,o) == (
+		zona := z;
+		quantidade := q;
+		operacao := o;
+		return self;
+	)
+	pre o = "Compra" or o = "Carregamento";
+
+end Recibo

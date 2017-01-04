@@ -1,20 +1,148 @@
 class TestMaquinaAndante is subclass of MyTestCase
 
-instance variables
+operations
+
+	public ConfigurarMaquina: MaquinaAndante`Password ==> MaquinaAndante
+	ConfigurarMaquina(codigo) == (
+		dcl ma: MaquinaAndante := new MaquinaAndante();
+		ma.definirPassword(codigo);
+		ma.sairFabrica(); 
+		return ma;
+	)
+	post RESULT.codigo = codigo
+	and RESULT.stockDinheiro = {|->} 
+	and RESULT.status = <Idle>
+	and RESULT.quantidadeCartoes = 0
+	and RESULT.quantidadeRecibo = 0;
 	
-	--z2: Zona := new Zona("z2",1.20);
-	z3: Zona := new Zona("z3",1.55);
-	z4: Zona := new Zona("z4",1.95);
-	z5: Zona := new Zona("z5",2.35);
-	z6: Zona := new Zona("z6",2.75);
-	z7: Zona := new Zona("z7",3.15);
-	z8: Zona := new Zona("z8",3.55);
-	z9: Zona := new Zona("z9",3.95);
-	z10: Zona := new Zona("z10",4.35);
-	z11: Zona := new Zona("z11",4.75);
-	z12: Zona := new Zona("z12",5.15);
+	public CarregarMaquina: MaquinaAndante * MaquinaAndante`Password * Dinheiro`BagOfCoins * nat1 * nat1 ==> ()
+	CarregarMaquina(maq, code, saco, qc, qr) == (
+		dcl quantidadeInicialCartao : nat := maq.quantidadeCartoes;
+		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
+		maq.abrirMaquina(code);
+		maq.carregarMaquina(saco, qc, qr);
+		maq.fecharMaquina();
+		assertTrue(maq.quantidadeCartoes = quantidadeInicialCartao + qc);
+		assertTrue(maq.quantidadeRecibo = quantidadeInicialPapel + qr);
+	)
+	pre maq.status = <Idle> 
+  	and code = maq.codigo
+  post maq.status = <Idle>
+  	and maq.stockDinheiro = saco;
+  
+  public ComprarAndanteRecibo: MaquinaAndante * Zona * nat1 * Dinheiro`BagOfCoins ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo
+  ComprarAndanteRecibo(maq,zon,qua,inserido) == (
+  	dcl quantidadeInicialCartao : nat := maq.quantidadeCartoes;
+		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
+		dcl stockInicialDinheiro : Dinheiro`BagOfCoins := maq.stockDinheiro; 
+		dcl dinheiroInserido: nat := 0;
+		dcl troco : Dinheiro`BagOfCoins := {|->};
+		dcl cartao : [CartaoAndante] := nil;
+		dcl recibo : [Recibo] := nil;
+		dcl result : CartaoAndante * Dinheiro`BagOfCoins * Recibo;
+		
+		for all c in set dom inserido do
+			for all - in set {1 , ..., inserido(c)} do (
+				maq.inserirDinheiro(c);
+				dinheiroInserido := dinheiroInserido + c;
+				assertEqual(dinheiroInserido, maq.quantiaInserida)
+      );      
+		
+		maq.comprarAndante(qua,zon,true);
+	 	
+  	if Dinheiro`sum(inserido) > zon.preco*qua then 
+  	  	troco := maq.apanharTroco();
+    
+    cartao := maq.apanharAndante();
+		recibo := maq.apanharRecibo();
+  	result := mk_(cartao, troco,recibo);
+    
+		assertTrue(maq.quantidadeCartoes = quantidadeInicialCartao -1);
+		assertTrue(maq.quantidadeRecibo = quantidadeInicialPapel -1);
+		assertTrue(Dinheiro`addAll(maq.stockDinheiro, troco) = Dinheiro`addAll(stockInicialDinheiro, inserido));
+		return result;
+  )
+  pre maq.status = <Idle> 
+  	and Dinheiro`sum(inserido) >= zon.preco * qua
+  	and maq.quantidadeCartoes > 0
+  	and maq.quantidadeRecibo > 0
+  	and Dinheiro`canExtract(Dinheiro`addAll(maq.stockDinheiro, inserido), Dinheiro`sum(inserido) - (zon.preco * qua)) 
+  post let mk_(cartao, troco, recibo) = RESULT in (
+		  cartao.zona = zon 
+		  and cartao.preco = zon.preco * qua
+		  and recibo.zona = zon
+		  and recibo.quantidade = qua
+		  and recibo.operacao = "Compra"
+		  and Dinheiro`sum(troco) = Dinheiro`sum(inserido) - (zon.preco * qua + 60)
+		  and maq.status = <Delivering> 
+	);
 	
-	m : MaquinaAndante := new MaquinaAndante();
-	c1 : CartaoAndante;
+	-----------------------------------------------------------------------------------------------------
+	public CarregarAndanteRecibo: MaquinaAndante * nat1 * Dinheiro`BagOfCoins * CartaoAndante ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo * CartaoAndante
+  CarregarAndanteRecibo(maq,qua,inserido,car) == (
+		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
+		dcl stockInicialDinheiro : Dinheiro`BagOfCoins := maq.stockDinheiro; 
+		dcl dinheiroInserido: nat := 0;
+		dcl troco : Dinheiro`BagOfCoins := {|->};
+		dcl cartaoVelho : [CartaoAndante] := car;
+		dcl cartaoNovo : [CartaoAndante] := car;
+		dcl recibo : [Recibo] := nil;
+		dcl result : CartaoAndante * Dinheiro`BagOfCoins * Recibo * CartaoAndante;
+		
+		for all c in set dom inserido do
+			for all - in set {1 , ..., inserido(c)} do (
+				maq.inserirDinheiro(c);
+				dinheiroInserido := dinheiroInserido + c;
+				assertEqual(dinheiroInserido, maq.quantiaInserida)
+      );      
+		
+		maq.carregarAndante(qua,cartaoNovo,true);
+	 	
+  	if Dinheiro`sum(inserido) > cartaoNovo.zona.preco * qua then 
+  	  	troco := maq.apanharTroco();
+    
+    --cartaoNovo := maq.apanharAndante();
+		recibo := maq.apanharRecibo();
+  	result := mk_(cartaoNovo, troco,recibo, cartaoVelho);
+    
+		assertTrue(maq.quantidadeRecibo = quantidadeInicialPapel -1);
+		assertTrue(Dinheiro`addAll(maq.stockDinheiro, troco) = Dinheiro`addAll(stockInicialDinheiro, inserido));
+		return result;
+  )
+  pre maq.status = <Idle> 
+  	and Dinheiro`sum(inserido) >= car.zona.preco * qua
+  	and maq.quantidadeCartoes > 0
+  	and maq.quantidadeRecibo > 0
+  	and Dinheiro`canExtract(Dinheiro`addAll(maq.stockDinheiro, inserido), Dinheiro`sum(inserido) - (car.zona.preco * qua)) 
+  post let mk_(cartao, troco, recibo, cartaoV) = RESULT in (
+		  recibo.zona = car.zona
+		  and cartao.quantidade = cartaoV.quantidade + qua
+		 -- and recibo.quantidade = qua
+		 -- and recibo.operacao = "Carregamento"
+		  --and Dinheiro`sum(troco) = Dinheiro`sum(inserido) - (car.zona.preco * qua)
+		  --and maq.status = <Delivering> 
+	);
+	
+
+	public testarCompraCartao: () ==> ()
+	testarCompraCartao() == (
+		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
+		CarregarMaquina(maquina, "password", {1 |-> 5, 2 |-> 5,5 |-> 5, 10 |-> 5, 20 |-> 5, 50 |-> 5,100 |-> 5,200 |-> 5},5,5);
+		
+		let mk_(-, troco, -) = ComprarAndanteRecibo(maquina, maquina.z2, 1, {200 |-> 1}) in
+  			assertEqual({ 20 |-> 1}, troco)
+	);
+	
+	public testarCarregarCartao: () ==> ()
+	testarCarregarCartao() == (
+		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
+		dcl cartao: CartaoAndante := new CartaoAndante(2,maquina.z2);
+		CarregarMaquina(maquina, "password", {1 |-> 5, 2 |-> 5,5 |-> 5, 10 |-> 5, 20 |-> 5, 50 |-> 5,100 |-> 5,200 |-> 5},5,5);
+		
+		let mk_(-, troco, -,-) = CarregarAndanteRecibo(maquina, 1, {100 |-> 1, 200 |-> 1}, cartao) in
+  			assertEqual({10 |-> 1, 20 |-> 1, 50 |-> 1, 100 |-> 1}, troco)
+	);
 
 end TestMaquinaAndante
+
+

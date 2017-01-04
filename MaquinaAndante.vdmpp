@@ -7,22 +7,16 @@ types
 
 instance variables
 
-	public quantidadeCartoes: nat := 5;
-	public quantidadeRecibo: nat := 5;
-	public stockDinheiro: SacoDinheiro := {
-		1 |-> 5, 
-		2 |-> 5,
-		5 |-> 5, 
-		10 |-> 5, 
-		20 |-> 5, 
-		50 |-> 5,
-		100 |-> 5,
-		200 |-> 5
-	};
+	public quantidadeCartoes: nat := 0;
+	public quantidadeRecibo: nat := 0;
+	public stockDinheiro: SacoDinheiro := {|->};
+
 	public quantiaInserida: nat := 0;
 	public troco : SacoDinheiro := {|->}; 
-	public status : Status := <EnteringCoins>; 
+	public status : Status := <OnFactory>; 
 	public andante : [CartaoAndante] := nil;
+	public recibo : [Recibo] := nil;
+	public codigo : Password := []; 
 	
 	public z2: Zona := new Zona("z2",120);
 	public z3: Zona := new Zona("z3",155);
@@ -37,18 +31,56 @@ instance variables
 	public z12: Zona := new Zona("z12",515);
 	
 operations
-
+	------------------------------------------------------------------------
+	--Operações Fábrica
+	------------------------------------------------------------------------
 	public MaquinaAndante: () ==> MaquinaAndante
 		MaquinaAndante() == 
 			return self;
-
+	
+	public definirPassword: Password ==> ()
+	definirPassword(code) ==
+		codigo := code
+	pre status = <OnFactory>;
+	
+	public sairFabrica: () ==> ()
+	sairFabrica() ==
+		status := <Idle>
+	pre status = <OnFactory>;
+	------------------------------------------------------------------------
+	
+	------------------------------------------------------------------------
+	--Operações Manutenção
+	------------------------------------------------------------------------
+	public abrirMaquina: Password ==> ()
+	abrirMaquina(code) ==
+		if code = codigo then 
+			status := <OnMaintenance>
+	pre status = <Idle>;
+	
+	public carregarMaquina: SacoDinheiro * nat1 * nat1 ==> () 
+	carregarMaquina(coins,cartoes,papel) == (
+		stockDinheiro := coins;
+		quantidadeCartoes := cartoes;
+		quantidadeRecibo := papel
+	)
+	pre status = <OnMaintenance>; 
+	
+	public fecharMaquina: () ==> ()
+	fecharMaquina() ==
+		status := <Idle>
+	pre status = <OnMaintenance>;
+	------------------------------------------------------------------------
+	
+	------------------------------------------------------------------------
+	--Operações Comprador
+	------------------------------------------------------------------------
 	public mudarZona: Zona * CartaoAndante ==> ()
 		mudarZona(z,c) == (
 			c.mudarZona(z);
 		)
+		pre status = <Idle>
 		post quantidadeCartoes = quantidadeCartoes~;
-		
-	-----------------------------------------------------------------------
 	
 	public inserirDinheiro: Dinheiro`Coin ==> () 
 	inserirDinheiro(coin) == 
@@ -82,6 +114,18 @@ operations
 	)
 	pre andante <> nil;
 	
+	public apanharRecibo: () ==> Recibo 
+	apanharRecibo() == (
+		let r = recibo in (
+			atomic( 
+				recibo := nil;
+				status := if recibo = nil then <Idle> else <Delivering>
+			);
+			return r
+		)
+	)
+	pre recibo <> nil;
+	
 	public cancelar: () ==> ()
   cancelar() ==
 		let chg = Dinheiro`extract(stockDinheiro, quantiaInserida) in 
@@ -107,11 +151,16 @@ operations
 						status := <Delivering>
 				);
 				
-				if r then quantidadeRecibo := quantidadeRecibo - 1;
+				if r then 
+				(
+					quantidadeRecibo := quantidadeRecibo - 1;
+					recibo := new Recibo(q,z,"Compra");
+				)
 	)
 	pre status = <EnteringCoins>  
 	    and quantidadeCartoes > 0
 			and quantiaInserida >= z.preco * q
+			and quantidadeRecibo > 0
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - z.preco * q);
 	    
 	public carregarAndante: nat * CartaoAndante * bool ==> ()
@@ -127,11 +176,16 @@ operations
 						status := <Delivering>
 				);
 				
-				if r then quantidadeRecibo := quantidadeRecibo - 1;
+				if r then 
+				(
+					quantidadeRecibo := quantidadeRecibo - 1;
+					recibo := new Recibo(q,c.zona,"Carregamento");
+				)
 				
 	))
 	pre status = <EnteringCoins>  
 			and quantiaInserida >= c.zona.preco * q
+			and quantidadeRecibo > 0
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - c.zona.preco * q);
 	    
 	public reset: () ==> ()
@@ -140,3 +194,6 @@ operations
 	
 		
 end MaquinaAndante
+
+--TODO
+--criar classes de teste
