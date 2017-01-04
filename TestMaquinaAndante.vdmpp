@@ -78,16 +78,16 @@ operations
 	);
 	
 	-----------------------------------------------------------------------------------------------------
-	public CarregarAndanteRecibo: MaquinaAndante * nat1 * Dinheiro`BagOfCoins * CartaoAndante ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo * CartaoAndante
+	public CarregarAndanteRecibo: MaquinaAndante * nat1 * Dinheiro`BagOfCoins * CartaoAndante ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo
   CarregarAndanteRecibo(maq,qua,inserido,car) == (
 		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
 		dcl stockInicialDinheiro : Dinheiro`BagOfCoins := maq.stockDinheiro; 
 		dcl dinheiroInserido: nat := 0;
 		dcl troco : Dinheiro`BagOfCoins := {|->};
-		dcl cartaoVelho : [CartaoAndante] := car;
+		dcl quantidadeInicial : nat := car.quantidade;
 		dcl cartaoNovo : [CartaoAndante] := car;
 		dcl recibo : [Recibo] := nil;
-		dcl result : CartaoAndante * Dinheiro`BagOfCoins * Recibo * CartaoAndante;
+		dcl result : CartaoAndante * Dinheiro`BagOfCoins * Recibo;
 		
 		for all c in set dom inserido do
 			for all - in set {1 , ..., inserido(c)} do (
@@ -101,12 +101,13 @@ operations
   	if Dinheiro`sum(inserido) > cartaoNovo.zona.preco * qua then 
   	  	troco := maq.apanharTroco();
     
-    --cartaoNovo := maq.apanharAndante();
+    cartaoNovo := maq.apanharAndante();
 		recibo := maq.apanharRecibo();
-  	result := mk_(cartaoNovo, troco,recibo, cartaoVelho);
+  	result := mk_(cartaoNovo, troco,recibo);
     
 		assertTrue(maq.quantidadeRecibo = quantidadeInicialPapel -1);
 		assertTrue(Dinheiro`addAll(maq.stockDinheiro, troco) = Dinheiro`addAll(stockInicialDinheiro, inserido));
+		assertTrue(cartaoNovo.quantidade = quantidadeInicial +qua);
 		return result;
   )
   pre maq.status = <Idle> 
@@ -114,13 +115,12 @@ operations
   	and maq.quantidadeCartoes > 0
   	and maq.quantidadeRecibo > 0
   	and Dinheiro`canExtract(Dinheiro`addAll(maq.stockDinheiro, inserido), Dinheiro`sum(inserido) - (car.zona.preco * qua)) 
-  post let mk_(cartao, troco, recibo, cartaoV) = RESULT in (
+  post let mk_(cartao, troco, recibo) = RESULT in (
 		  recibo.zona = car.zona
-		  and cartao.quantidade = cartaoV.quantidade + qua
-		 -- and recibo.quantidade = qua
-		 -- and recibo.operacao = "Carregamento"
-		  --and Dinheiro`sum(troco) = Dinheiro`sum(inserido) - (car.zona.preco * qua)
-		  --and maq.status = <Delivering> 
+		  and recibo.quantidade = qua
+		  and recibo.operacao = "Carregamento"
+		  and Dinheiro`sum(troco) = Dinheiro`sum(inserido) - (car.zona.preco * qua)
+		  and maq.status = <Delivering> 
 	);
 	
 
@@ -139,7 +139,7 @@ operations
 		dcl cartao: CartaoAndante := new CartaoAndante(2,maquina.z2);
 		CarregarMaquina(maquina, "password", {1 |-> 5, 2 |-> 5,5 |-> 5, 10 |-> 5, 20 |-> 5, 50 |-> 5,100 |-> 5,200 |-> 5},5,5);
 		
-		let mk_(-, troco, -,-) = CarregarAndanteRecibo(maquina, 1, {100 |-> 1, 200 |-> 1}, cartao) in
+		let mk_(-, troco, -) = CarregarAndanteRecibo(maquina, 1, {100 |-> 1, 200 |-> 1}, cartao) in
   			assertEqual({10 |-> 1, 20 |-> 1, 50 |-> 1, 100 |-> 1}, troco)
 	);
 
