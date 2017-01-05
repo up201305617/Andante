@@ -1,42 +1,41 @@
 class CartaoAndante
 
+-- A classe CartaoAndante permite representar os titulos de transporte
+-- Andante que podem ser adquiridos e carregados numa maquina Andante.
+
 types
 	
 	public String = seq1 of char;
 	
 instance variables
 	
-	public zona: Zona;
-	public quantidade: nat;
-	public preco: nat;
+	public zona: Zona; -- Zona associada ao titulo
+	public quantidade: nat; -- Quantidade de viagens restantes
 	
 operations
 	
+	-- Construtor da classe 
 	public CartaoAndante: nat * Zona ==> CartaoAndante
 	CartaoAndante(q,z) == (
 		zona := z;
 		quantidade := q;
 		return self;
 	)
-	post quantidade <> 0; 
+	post quantidade <> 0; -- Encontra-se inicialmente carregado
 	
+	-- Carrega um titulo Andante com viagens
 	public carregarAndante: nat ==> ()
 	carregarAndante(q) == 
 		quantidade := quantidade + q
 	post quantidade = q + quantidade~;
-	
-	public calcularPreco: () ==> nat
-	calcularPreco() ==(
-		preco := zona.preco * quantidade;
-		return preco);
-	
+
+	-- Muda a zona associada a um titulo Andante
 	public mudarZona: Zona ==> ()
 	mudarZona(z) == (
 		quantidade := 0;
-		preco := 0;
 		zona := z
 	)
-	post zona <> zona~
-		and quantidade = 0;
+	post zona <> zona~ -- A nova zona tem de ser diferente da anterior
+		and quantidade = 0; -- Viagens existentes devem ser eliminadas
 
 end CartaoAndante
