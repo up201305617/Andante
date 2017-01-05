@@ -1,23 +1,40 @@
 class MaquinaAndante
+
+-- A classe CartaoAndante permite representar a MaquinaAndante
+-- onde se pode adquirir e carregar titulos de viagem Andante.
+
 types
 
+	public Password = seq of char;
 	public SacoDinheiro = Dinheiro`BagOfCoins;
 	public Status = <OnFactory> | <OnMaintenance> | <Idle> | <EnteringCoins> | <Delivering>;
-	public Password = seq of char;
 
 instance variables
 
-	public quantidadeCartoes: nat := 0;
-	public quantidadeRecibo: nat := 0;
-	public stockDinheiro: SacoDinheiro := {|->};
-
-	public quantiaInserida: nat := 0;
-	public troco : SacoDinheiro := {|->}; 
-	public status : Status := <OnFactory>; 
-	public andante : [CartaoAndante] := nil;
-	public recibo : [Recibo] := nil;
-	public codigo : Password := []; 
+	----------------------------------------------------------------
+	-- VARIAVEIS DE STOCK
+	----------------------------------------------------------------
+	public quantidadeCartoes: nat := 0;	-- Stock de titulos Andante
+	public quantidadeRecibo: nat := 0; -- Stock de papel de recibos
+	public stockDinheiro: SacoDinheiro := {|->}; -- Stock de moedas
 	
+ 	------------------------------------------------------------------------------------
+	-- VARIAVEIS DAS OPERACOES
+	-----------------------------------------------------------------------------------
+	public quantiaInserida: nat := 0; -- Quantia total inserida na maquina (centimos)
+	public andante : [CartaoAndante] := nil; -- Titulo a ser comprado/carregado
+	public recibo : [Recibo] := nil; -- Recibo a ser processado
+	public troco : SacoDinheiro := {|->};  -- Quantia a devolver ao cliente
+	
+	------------------------------------------------------------------
+	-- VARIAVEIS DO FABRICANTE
+	------------------------------------------------------------------
+	public codigo : Password := [];  -- Password do fabricante
+	public status : Status := <OnFactory>; -- Estado atual da maquina
+	
+	---------------------------------------
+	-- ZONAS DE MOBILIDADE ANDANTE
+	---------------------------------------
 	public z2: Zona := new Zona("z2",120);
 	public z3: Zona := new Zona("z3",155);
 	public z4: Zona := new Zona("z4",195);
@@ -32,17 +49,21 @@ instance variables
 	
 operations
 	------------------------------------------------------------------------
-	--Operações Fábrica
+	-- OPERACOES DO FABRICANTE
 	------------------------------------------------------------------------
+	
+	-- Construtor da classe
 	public MaquinaAndante: () ==> MaquinaAndante
 		MaquinaAndante() == 
 			return self;
 	
+	-- Define a password da maquina
 	public definirPassword: Password ==> ()
 	definirPassword(code) ==
 		codigo := code
 	pre status = <OnFactory>;
 	
+	-- Prepara a maquina para ser utilizada
 	public sairFabrica: () ==> ()
 	sairFabrica() ==
 		status := <Idle>
@@ -50,14 +71,17 @@ operations
 	------------------------------------------------------------------------
 	
 	------------------------------------------------------------------------
-	--Operações Manutenção
+	-- OPERACOES DE MANUTENCAO
 	------------------------------------------------------------------------
+	
+	-- Abre a maquina para efetuar operacoes de manutencao
 	public abrirMaquina: Password ==> ()
 	abrirMaquina(code) ==
 		if code = codigo then 
 			status := <OnMaintenance>
 	pre status = <Idle>;
 	
+	-- Restaura os stocks de moedas, titulos e papel de recibo
 	public carregarMaquina: SacoDinheiro * nat1 * nat1 ==> () 
 	carregarMaquina(coins,cartoes,papel) == (
 		stockDinheiro := coins;
@@ -66,15 +90,23 @@ operations
 	)
 	pre status = <OnMaintenance>; 
 	
+	-- Termina operacoes de manutencao
 	public fecharMaquina: () ==> ()
 	fecharMaquina() ==
 		status := <Idle>
 	pre status = <OnMaintenance>;
+	
+	-- Reinicia a maquina
+	public reset: () ==> ()
+	reset() ==
+		status := <Idle>;
 	------------------------------------------------------------------------
 	
 	------------------------------------------------------------------------
-	--Operações Comprador
+	-- OPERACOES CLIENTE
 	------------------------------------------------------------------------
+	
+	-- Muda a zona associada ao titulo Andante
 	public mudarZona: Zona * CartaoAndante ==> ()
 		mudarZona(z,c) == (
 			c.mudarZona(z);
@@ -84,6 +116,7 @@ operations
 		pre status = <Idle>
 		post quantidadeCartoes = quantidadeCartoes~;
 	
+	-- Insere dinheiro na maquina
 	public inserirDinheiro: Dinheiro`Coin ==> () 
 	inserirDinheiro(coin) == 
 		atomic (
@@ -93,6 +126,7 @@ operations
 		)
 	pre status in set {<Idle>, <EnteringCoins>}; 
 	
+	-- Recolhe o troco da maquina
 	public apanharTroco: () ==> SacoDinheiro 
 	apanharTroco() ==
 		let r = troco in (
@@ -104,6 +138,7 @@ operations
 		)
 	pre troco <> {|->};
 	
+	-- Recolhe titulo Andante da maquina
 	public apanharAndante: () ==> CartaoAndante 
 	apanharAndante() == (
 		let r = andante in (
@@ -116,6 +151,7 @@ operations
 	)
 	pre andante <> nil;
 	
+	-- Recolhe papel de recibo da maquina
 	public apanharRecibo: () ==> Recibo 
 	apanharRecibo() == (
 		let r = recibo in (
@@ -128,6 +164,7 @@ operations
 	)
 	pre recibo <> nil;
 	
+	-- Cancela a compra/carregamento
 	public cancelar: () ==> ()
   cancelar() ==
 		let chg = Dinheiro`extract(stockDinheiro, quantiaInserida) in 
@@ -139,6 +176,7 @@ operations
 			)
 	pre status = <EnteringCoins>;  
 	
+	-- Compra um novo titulo Andante carregado
 	public comprarAndante: nat1 * Zona * bool ==> ()
 	comprarAndante(q, z, r) == 
 		let cartao = new CartaoAndante(q,z),
@@ -164,7 +202,8 @@ operations
 			and quantiaInserida >= z.preco * q
 			and quantidadeRecibo > 0
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - z.preco * q);
-	    
+	
+	-- Carrega um titulo Andante previamente adquirido
 	public carregarAndante: nat * CartaoAndante * bool ==> ()
 	carregarAndante(q, c, r) ==(
 		c.carregarAndante(q);
@@ -189,12 +228,7 @@ operations
 			and quantiaInserida >= c.zona.preco * q
 			and quantidadeRecibo > 0
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - c.zona.preco * q);
-	    
-	public reset: () ==> ()
-	reset() ==
-		status := <Idle>
 	
-		
 end MaquinaAndante
 
 --TODO
