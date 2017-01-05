@@ -77,7 +77,6 @@ operations
 		  and maq.status = <Delivering> 
 	);
 	
-	-----------------------------------------------------------------------------------------------------
 	public CarregarAndanteRecibo: MaquinaAndante * nat1 * Dinheiro`BagOfCoins * CartaoAndante ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo
   CarregarAndanteRecibo(maq,qua,inserido,car) == (
 		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
@@ -123,6 +122,31 @@ operations
 		  and maq.status = <Delivering> 
 	);
 	
+	public CancelarCompra: MaquinaAndante * Dinheiro`BagOfCoins ==> Dinheiro`BagOfCoins
+	CancelarCompra(maq, coins) == (
+
+		dcl stockInicialDinheiro : Dinheiro`BagOfCoins := maq.stockDinheiro;
+		dcl inserido : nat := 0;
+		dcl result : Dinheiro`BagOfCoins;
+		
+		for all c in set dom coins do
+			for all - in set {1 , ..., coins(c)} do (
+				maq.inserirDinheiro(c);
+				inserido := inserido + c;
+				assertEqual(inserido, maq.quantiaInserida)
+     );      		
+		maq.cancelar();    
+		result := maq.apanharTroco();
+    
+		assertTrue(Dinheiro`addAll(stockInicialDinheiro, coins) = Dinheiro`addAll( maq.stockDinheiro, result));
+			         
+		return result
+	)
+	pre  maq.status = <Idle> 
+	     and Dinheiro`sum(coins) > 0 
+	post Dinheiro`sum(RESULT) = Dinheiro`sum(coins) 
+			and maq.status = <Idle>;
+	
 
 	public testarCompraCartao: () ==> ()
 	testarCompraCartao() == (
@@ -141,6 +165,16 @@ operations
 		
 		let mk_(-, troco, -) = CarregarAndanteRecibo(maquina, 1, {100 |-> 1, 200 |-> 1}, cartao) in
   			assertEqual({10 |-> 1, 20 |-> 1, 50 |-> 1, 100 |-> 1}, troco)
+	);
+	
+	public testarCancelar: () ==> ()
+	testarCancelar() == (
+		let maquina = ConfigurarMaquina("password"),
+				coins = {100 |-> 1, 200 |-> 1}
+		in (
+		  CarregarMaquina(maquina, "password", {1 |-> 5, 2 |-> 5,5 |-> 5, 10 |-> 5, 20 |-> 5, 50 |-> 5,100 |-> 5,200 |-> 5},5,5);
+		  assertEqual(coins,  CancelarCompra(maquina, coins))
+		)
 	);
 
 end TestMaquinaAndante
