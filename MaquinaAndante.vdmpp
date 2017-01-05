@@ -180,7 +180,7 @@ operations
 	public comprarAndante: nat1 * Zona * bool ==> ()
 	comprarAndante(q, z, r) == 
 		let cartao = new CartaoAndante(q,z),
-		preco = cartao.calcularPreco() + 60,
+		preco = (cartao.zona.preco * cartao.quantidade) + 60,
 		chg = Dinheiro`extract(stockDinheiro, quantiaInserida - preco) in (
 		  		atomic (
 						stockDinheiro := Dinheiro`removeAll(chg, stockDinheiro);
