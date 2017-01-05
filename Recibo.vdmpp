@@ -1,16 +1,20 @@
 class Recibo
-types
 
+-- A classe Recibo permite representar os recibos de carregamento/compra
+-- oferecidos (quando solicitado) aos clientes pela maquina Andante.
+
+types
 	public String = seq1 of char;
 	
 instance variables
 
-	public zona: Zona;
-	public quantidade: nat1;
-	public operacao: String;
+	public zona: Zona; -- Zona associada ao titulo Andante
+	public quantidade: nat1; -- Quantidades de viagens compradas
+	public operacao: String; -- Tipo de operacao
 	 
 operations
-
+	
+	-- Construtor da classe
 	public Recibo: nat * Zona * String ==> Recibo
 	Recibo(q,z,o) == (
 		zona := z;
@@ -18,6 +22,6 @@ operations
 		operacao := o;
 		return self;
 	)
-	pre o = "Compra" or o = "Carregamento";
+	pre o = "Compra" or o = "Carregamento"; -- Existem apenas duas operacoes
 
 end Recibo
