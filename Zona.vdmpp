@@ -1,23 +1,27 @@
 class Zona
 
+-- A classe Zona permite instanciar novas
+-- zonas de mobilidade dentro do mapa Andante
+
 types
 
 	public String = seq1 of char;
 	
 instance variables
 
-	public nome : String;
-	public preco : nat1;
+	public nome : String; -- Identificador da zona
+	public preco : nat1; -- Custo de uma viagem (centimos)
 	
 operations
 
+	-- Construtor da classe
 	public Zona: String * nat1 ==> Zona
 	Zona(n,p) == (
 		nome := n;
 		preco := p;
 		return self;
 	)
-	post preco > 0; 
+	post preco > 0; -- Todas as zonas tem um custo associado
 	
 
 end Zona
