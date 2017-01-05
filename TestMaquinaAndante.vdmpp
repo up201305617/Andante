@@ -147,6 +147,16 @@ operations
 	post Dinheiro`sum(RESULT) = Dinheiro`sum(coins) 
 			and maq.status = <Idle>;
 	
+	public MudarZona: MaquinaAndante * CartaoAndante * Zona==> CartaoAndante
+	MudarZona(maq,cartao,zon) == (
+		dcl result: CartaoAndante;
+		maq.mudarZona(zon,cartao);
+		result := maq.apanharAndante();
+		assertTrue(zon.nome = result.zona.nome);
+		assertTrue(0 = result.quantidade);
+		return result
+	)
+	pre maq.status = <Idle>;
 
 	public testarCompraCartao: () ==> ()
 	testarCompraCartao() == (
@@ -176,6 +186,24 @@ operations
 		  assertEqual(coins,  CancelarCompra(maquina, coins))
 		)
 	);
+	
+	public testarMudarZona: () ==> ()
+	testarMudarZona() == (
+		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
+		dcl cartao: CartaoAndante := new CartaoAndante(2,maquina.z2);
+		dcl zona: Zona := maquina.z5;
+		dcl cartaoNovo: CartaoAndante := MudarZona(maquina,cartao,zona);
+		assertEqual(zona.nome, cartaoNovo.zona.nome);
+	);
+	
+	public main: () ==> ()
+ 	main() == (
+  		testarCompraCartao();
+  		testarCarregarCartao();
+  		testarCancelar();
+  		testarMudarZona();
+  );
+
 
 end TestMaquinaAndante
 

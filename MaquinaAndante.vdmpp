@@ -78,6 +78,8 @@ operations
 	public mudarZona: Zona * CartaoAndante ==> ()
 		mudarZona(z,c) == (
 			c.mudarZona(z);
+			andante := c;
+			status := <Idle>;
 		)
 		pre status = <Idle>
 		post quantidadeCartoes = quantidadeCartoes~;
