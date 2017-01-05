@@ -1,7 +1,11 @@
 class TestMaquinaAndante is subclass of MyTestCase
 
-operations
+-- Esta classe serve para testar os distintos comportamentos da
+-- maquina Andante em distintos cenarios.
 
+operations
+	
+	-- Testa a configuracao da maquina Andante pelo seu fabricante
 	public ConfigurarMaquina: MaquinaAndante`Password ==> MaquinaAndante
 	ConfigurarMaquina(codigo) == (
 		dcl ma: MaquinaAndante := new MaquinaAndante();
@@ -15,6 +19,7 @@ operations
 	and RESULT.quantidadeCartoes = 0
 	and RESULT.quantidadeRecibo = 0;
 	
+	-- Testa o abastecimento de stock da maquina Andante
 	public CarregarMaquina: MaquinaAndante * MaquinaAndante`Password * Dinheiro`BagOfCoins * nat1 * nat1 ==> ()
 	CarregarMaquina(maq, code, saco, qc, qr) == (
 		dcl quantidadeInicialCartao : nat := maq.quantidadeCartoes;
@@ -30,6 +35,7 @@ operations
   post maq.status = <Idle>
   	and maq.stockDinheiro = saco;
   
+  -- Testa a compra de um novo titulo Andante
   public ComprarAndanteRecibo: MaquinaAndante * Zona * nat1 * Dinheiro`BagOfCoins ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo
   ComprarAndanteRecibo(maq,zon,qua,inserido) == (
   	dcl quantidadeInicialCartao : nat := maq.quantidadeCartoes;
@@ -77,6 +83,7 @@ operations
 		  and maq.status = <Delivering> 
 	);
 	
+	-- Testa o carregamento de um titulo Andante
 	public CarregarAndanteRecibo: MaquinaAndante * nat1 * Dinheiro`BagOfCoins * CartaoAndante ==> CartaoAndante * Dinheiro`BagOfCoins * Recibo
   CarregarAndanteRecibo(maq,qua,inserido,car) == (
 		dcl quantidadeInicialPapel : nat := maq.quantidadeRecibo;
@@ -122,6 +129,7 @@ operations
 		  and maq.status = <Delivering> 
 	);
 	
+	-- Cancela a compra de um novo titulo Andante
 	public CancelarCompra: MaquinaAndante * Dinheiro`BagOfCoins ==> Dinheiro`BagOfCoins
 	CancelarCompra(maq, coins) == (
 
@@ -147,6 +155,7 @@ operations
 	post Dinheiro`sum(RESULT) = Dinheiro`sum(coins) 
 			and maq.status = <Idle>;
 	
+	-- Muda a zona de um titulo Andante
 	public MudarZona: MaquinaAndante * CartaoAndante * Zona==> CartaoAndante
 	MudarZona(maq,cartao,zon) == (
 		dcl result: CartaoAndante;
@@ -157,7 +166,8 @@ operations
 		return result
 	)
 	pre maq.status = <Idle>;
-
+	
+	-- Procedimento generico para testar a compra de um novo titulo Andante
 	public testarCompraCartao: () ==> ()
 	testarCompraCartao() == (
 		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
@@ -167,6 +177,7 @@ operations
   			assertEqual({ 20 |-> 1}, troco)
 	);
 	
+	-- Procedimento generico para testar o carregamento de um titulo Andante
 	public testarCarregarCartao: () ==> ()
 	testarCarregarCartao() == (
 		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
@@ -177,6 +188,7 @@ operations
   			assertEqual({10 |-> 1, 20 |-> 1, 50 |-> 1, 100 |-> 1}, troco)
 	);
 	
+	-- Procedimento generico para testar o cancelamento de uma compra/carregamento
 	public testarCancelar: () ==> ()
 	testarCancelar() == (
 		let maquina = ConfigurarMaquina("password"),
@@ -187,6 +199,7 @@ operations
 		)
 	);
 	
+	-- Procedimento generico para testar mudanca de zona de titulo Andante
 	public testarMudarZona: () ==> ()
 	testarMudarZona() == (
 		dcl maquina: MaquinaAndante := ConfigurarMaquina("password");
@@ -196,6 +209,7 @@ operations
 		assertEqual(zona.nome, cartaoNovo.zona.nome);
 	);
 	
+	-- Main 
 	public main: () ==> ()
  	main() == (
   		testarCompraCartao();
