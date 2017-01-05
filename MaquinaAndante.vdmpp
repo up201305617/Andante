@@ -230,6 +230,3 @@ operations
 	    and Dinheiro`canExtract(stockDinheiro, quantiaInserida - c.zona.preco * q);
 	
 end MaquinaAndante
-
---TODO
---criar classes de teste
