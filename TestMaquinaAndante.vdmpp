@@ -75,7 +75,7 @@ operations
   	and Dinheiro`canExtract(Dinheiro`addAll(maq.stockDinheiro, inserido), Dinheiro`sum(inserido) - (zon.preco * qua)) 
   post let mk_(cartao, troco, recibo) = RESULT in (
 		  cartao.zona = zon 
-		  and cartao.preco = zon.preco * qua
+		  and cartao.zona.preco * cartao.quantidade = zon.preco * qua
 		  and recibo.zona = zon
 		  and recibo.quantidade = qua
 		  and recibo.operacao = "Compra"
